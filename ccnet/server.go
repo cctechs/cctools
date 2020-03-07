@@ -45,7 +45,7 @@ func (s *Server) Start(port int) error{
 			}
 			sock := s.addNewConn(conn)
 			if sock != nil{
-				go sock.DoWork()
+				go sock.doWork()
 			}
 		}
 	}()
@@ -80,7 +80,7 @@ func (s *Server) checkStatus(){
 				// check if it's alive
 				addrs := make([]string, len(s.mapSocks))
 				for k, v := range s.mapSocks{
-					if !v.IsAlive(){
+					if !v.isAlive(){
 						addrs = append(addrs, k)
 					}
 				}

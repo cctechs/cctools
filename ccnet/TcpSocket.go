@@ -9,66 +9,65 @@ import (
 
 type PacketRawData []byte
 
+type FnRecvCallback func([]byte)
+type FnClosedCallback func()
 type TcpSocket struct {
-	conn       net.Conn
-	buff       *streamBuffer
-	headerSize uint32
-	inPacket   chan PacketRawData
-	outPacket  chan PacketRawData
-	isAlive   ccbase.AtomBool
+	conn         net.Conn
+	buff         *streamBuffer
+	headerSize   uint32
+	inPacket     chan PacketRawData
+	outPacket    chan PacketRawData
+	alive      ccbase.AtomBool
+	CBRecvPacket FnRecvCallback
+	CBClosed     FnClosedCallback
 }
 
 func NewTcpSocket(conn net.Conn) *TcpSocket {
 	return &TcpSocket{
 		conn:       conn,
 		buff:       newStreamBuffer(),
-		headerSize: ccbase.StreamSizeof(&PacketHeader{}),
+		headerSize: ccbase.PK_HEADER_SIZE,
 		inPacket:   make(chan PacketRawData, 32),
 		outPacket:  make(chan PacketRawData, 32),
 	}
 }
 
-func (t *TcpSocket) RecvPacket(buf []byte) {
-
+func (t *TcpSocket) recvpacket(buf []byte) {
+	if t.CBRecvPacket != nil{
+		t.CBRecvPacket(buf)
+	}
 }
 
-func (t* TcpSocket) SendPacket(buf []byte) error{
-	if t.IsAlive(){
+func (t *TcpSocket) SendPacket(buf []byte) error {
+	if t.isAlive() {
 		t.outPacket <- buf
 		return nil
 	}
 	return errors.New("socket not alive")
 }
 
-func (t *TcpSocket) DoWork() {
-	t.isAlive.Set(true)
+func (t *TcpSocket) doWork() {
+	t.alive.Set(true)
 
 	defer func() {
-		if t.IsAlive(){
+		if t.isAlive() {
 			t.Close()
 		}
 	}()
 
 	// send packet
 	go func() {
-		for{
-			select {
-			case  d, ok := <- t.outPacket:
-				if ok{
-					totalLen := len(d)
-					for{
-						if totalLen > 0{
-							n, err := t.conn.Write(d)
-							if err != nil{
-								cclog.LogError("write to %v error, err=%v", t.conn.RemoteAddr(), err)
-								return
-							}
-							totalLen = totalLen - n
-							d = d[n:]
-						}
+		for ch := range t.outPacket {
+			totalLen := len(ch)
+			for {
+				if totalLen > 0 {
+					n, err := t.conn.Write(ch)
+					if err != nil {
+						cclog.LogError("write to %v error, err=%v", t.conn.RemoteAddr(), err)
+						return
 					}
-				} else {
-					cclog.LogError("why here???")
+					totalLen = totalLen - n
+					ch = ch[n:]
 				}
 			}
 		}
@@ -76,15 +75,8 @@ func (t *TcpSocket) DoWork() {
 
 	// recv packet
 	go func() {
-		for {
-			select {
-			case d, ok := <-t.inPacket:
-				if ok {
-					t.RecvPacket(d)
-				} else {
-					cclog.LogError("why here???")
-				}
-			}
+		for ch := range t.inPacket {
+			t.recvpacket(ch)
 		}
 	}()
 
@@ -99,7 +91,7 @@ func (t *TcpSocket) DoWork() {
 		t.buff.write(buf[:n])
 
 		pkLen, err := t.checkpacket()
-		if err != nil{
+		if err != nil {
 			cclog.LogError("checkpacket from %s error, err=%v", t.conn.RemoteAddr(), err)
 			break
 		}
@@ -115,11 +107,11 @@ func (t *TcpSocket) DoWork() {
 func (t *TcpSocket) checkpacket() (uint32, error) {
 	data := t.buff.copy(t.headerSize)
 	if data != nil {
-		header := &PacketHeader{}
+		header := &ccbase.PacketHeader{}
 		err := ccbase.UnSerializeFromBytes(data, header)
 		if nil == err {
 			return header.Size, nil
-		}else{
+		} else {
 			cclog.LogError("UnSerializeFromBytes failed, err=%v", err.Error())
 			return 0, err
 		}
@@ -129,10 +121,14 @@ func (t *TcpSocket) checkpacket() (uint32, error) {
 
 func (t *TcpSocket) Close() {
 	close(t.inPacket)
-	t.isAlive.Set(false)
+	close(t.outPacket)
+	t.alive.Set(false)
 	cclog.LogError("close socket %v", t.conn.RemoteAddr().String())
+	if t.CBClosed != nil{
+		t.CBClosed()
+	}
 }
 
-func (t *TcpSocket) IsAlive() bool {
-	return t.isAlive.Get()
+func (t *TcpSocket) isAlive() bool {
+	return t.alive.Get()
 }

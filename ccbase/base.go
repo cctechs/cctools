@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"github.com/cctechs/cctools/cclog"
+	"github.com/golang/protobuf/proto"
 	"os"
 	"os/signal"
 	"runtime"
@@ -87,4 +88,22 @@ func PProf(file string){
 	}
 	pprof.StartCPUProfile(f)
 	defer pprof.StopCPUProfile()
+}
+
+func SerializeToPacket(cmd uint32, msg proto.Message)([]byte, error){
+	data, err := proto.Marshal(msg)
+	if err != nil {
+		return nil, err
+	}
+	header := &PacketHeader{
+		Cmd:     cmd,
+		Size:    PK_HEADER_SIZE,
+		Seq:     0,
+		Session: 0,
+		Version: 0,
+	}
+	buf := make([]byte, 0)
+	buf = append(buf, SerializeToBytes(header)...)
+	buf = append(buf, data...)
+	return buf, nil
 }
