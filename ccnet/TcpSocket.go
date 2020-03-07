@@ -5,6 +5,7 @@ import (
 	"github.com/cctechs/cctools/ccbase"
 	"github.com/cctechs/cctools/cclog"
 	"net"
+	"time"
 )
 
 type PacketRawData []byte
@@ -68,6 +69,7 @@ func (t *TcpSocket) doWork() {
 					}
 					totalLen = totalLen - n
 					ch = ch[n:]
+					t.conn.SetWriteDeadline(time.Now().Add(time.Duration(300) * time.Second))
 				}
 			}
 		}
@@ -88,6 +90,7 @@ func (t *TcpSocket) doWork() {
 			cclog.LogError("read from %s error, err=%v", t.conn.RemoteAddr(), err)
 			return
 		}
+		t.conn.SetReadDeadline(time.Now().Add(time.Duration(300) * time.Second))
 		t.buff.write(buf[:n])
 
 		pkLen, err := t.checkpacket()
