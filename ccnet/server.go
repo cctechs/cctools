@@ -1,8 +1,8 @@
 package ccnet
 
 import (
-	"cctools/cclog"
 	"fmt"
+	"github.com/cctechs/cctools/cclog"
 	"net"
 	"sync"
 	"time"

@@ -1,9 +1,9 @@
 package ccnet
 
 import (
-	"cctools/ccbase"
-	"cctools/cclog"
 	"errors"
+	"github.com/cctechs/cctools/ccbase"
+	"github.com/cctechs/cctools/cclog"
 	"net"
 )
 

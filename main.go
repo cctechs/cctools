@@ -1,12 +1,11 @@
 package main
 
 import (
-	"cctools/ccbase"
-	"cctools/ccnet"
-	"cctools/myspider"
+	"github.com/cctechs/cctools/ccbase"
+	"github.com/cctechs/cctools/ccnet"
+	"github.com/cctechs/cctools/myspider"
 	"net"
 )
-
 
 func main(){
 	s := ccnet.NewServer(func(conn net.Conn) ccnet.TcpSocketInterface {

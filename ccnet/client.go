@@ -1,8 +1,8 @@
 package ccnet
 
 import (
-	"cctools/cclog"
 	"errors"
+	"github.com/cctechs/cctools/cclog"
 	"net"
 )
 

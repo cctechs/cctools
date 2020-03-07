@@ -1,7 +1,7 @@
 package myspider
 
 import (
-	"cctools/ccnet"
+	"github.com/cctechs/cctools/ccnet"
 	"net"
 )
 
