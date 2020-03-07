@@ -1,7 +1,17 @@
 package main
 
-import "fmt"
+import (
+	"cctools/ccbase"
+	"cctools/ccnet"
+	"cctools/myspider"
+	"net"
+)
+
 
 func main(){
-	fmt.Println("hello world")
+	s := ccnet.NewServer(func(conn net.Conn) ccnet.TcpSocketInterface {
+		return myspider.NewSpiderClient(conn)
+	})
+	s.Start(1001)
+	ccbase.Wait()
 }
