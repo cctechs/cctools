@@ -5,7 +5,7 @@ type streamBuffer struct {
 }
 
 func newStreamBuffer()*streamBuffer{
-	return &streamBuffer{buf:make([]byte, 1024)}
+	return &streamBuffer{buf:make([]byte, 0)}
 }
 
 func (s *streamBuffer) write(data []byte) {

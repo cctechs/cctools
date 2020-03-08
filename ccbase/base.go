@@ -97,7 +97,7 @@ func SerializeToPacket(cmd uint32, msg proto.Message)([]byte, error){
 	}
 	header := &PacketHeader{
 		Cmd:     cmd,
-		Size:    PK_HEADER_SIZE,
+		Size:    PK_HEADER_SIZE + uint32(len(data)),
 		Seq:     0,
 		Session: 0,
 		Version: 0,

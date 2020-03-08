@@ -12,9 +12,10 @@ type FnCallback func()
 type Client struct {
 	sock        *TcpSocket
 	CBConnected FnCallback
-	CBClosed    FnCallback
+	CBClosed    FnClosedCallback
 	CBKeepAlive FnCallback
 	CBLogin     FnCallback
+	CBRecvPacket FnRecvCallback
 	IsLogin     bool
 }
 
@@ -33,6 +34,10 @@ func (c *Client) Connect(addr string) error {
 		cclog.LogNotice("connected %s.", addr)
 		c.sock = NewTcpSocket(conn)
 		if c.sock != nil {
+			c.sock.SetAlive(true)
+			c.SetLoginFlag(false)
+			c.sock.CBRecvPacket = c.CBRecvPacket
+			c.sock.CBClosed = c.CBClosed
 			go c.sock.doWork()
 			return nil
 		}
@@ -55,13 +60,19 @@ func (c *Client) Connect(addr string) error {
 						} else {
 							c.login()
 						}
-
 					}
 				}
 			}
 		}
 	}()
 	return errors.New("create sockets failed")
+}
+
+func(c *Client) closed(){
+	c.SetLoginFlag(false)
+	if c.CBClosed != nil{
+		c.CBClosed()
+	}
 }
 
 func (c *Client) connected() {
@@ -79,4 +90,15 @@ func (c *Client) login() {
 	if c.CBLogin != nil {
 		c.CBLogin()
 	}
+}
+
+func (c* Client) SetLoginFlag(flag bool){
+	c.IsLogin = flag
+}
+
+func (c* Client) SendData(data []byte) error{
+	if c.sock != nil{
+		return c.sock.SendPacket(data)
+	}
+	return errors.New("no socket")
 }
